@@ -1,0 +1,27 @@
+# Secrets must never enter the build context.
+.env
+.env.*
+!.env.example
+secrets/
+*-service-account.json
+*credentials*.json
+*.pem
+*.key
+
+.git/
+.gitignore
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+build/
+dist/
+
+# The reference PDF is test data, not part of the runtime image.
+tests/

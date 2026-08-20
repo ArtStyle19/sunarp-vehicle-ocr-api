@@ -1,0 +1,29 @@
+services:
+  vehicle-ocr:
+    build: .
+    image: vehicle-ocr-api:latest
+    restart: unless-stopped
+    environment:
+      # The API key is read from your shell or a local .env file -- never hardcode it here.
+      API_KEY: ${API_KEY:?set API_KEY in your environment or .env}
+      GOOGLE_APPLICATION_CREDENTIALS: /run/secrets/google-service-account.json
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      RETURN_DEBUG_DATA: ${RETURN_DEBUG_DATA:-false}
+      OCR_LANG: ${OCR_LANG:-spa}
+    volumes:
+      # Mounted read-only at runtime. The key is never copied into the image.
+      - ./secrets/google-service-account.json:/run/secrets/google-service-account.json:ro
+    # Reachable from n8n on the shared network as http://vehicle-ocr:8000 without publishing a
+    # port on the host. Swap for `ports: ["8000:8000"]` only if you need host access.
+    expose:
+      - "8000"
+    networks:
+      - n8n
+
+networks:
+  n8n:
+    # This compose file does not create the network -- attach it to the one n8n already uses.
+    # Find it with: docker network ls
+    # Then either set N8N_NETWORK, or replace this block with `n8n: { external: true, name: <name> }`.
+    external: true
+    name: ${N8N_NETWORK:-n8n_default}

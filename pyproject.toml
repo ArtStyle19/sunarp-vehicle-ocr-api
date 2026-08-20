@@ -1,0 +1,46 @@
+[project]
+name = "vehicle-ocr-api"
+version = "1.0.0"
+description = "Extracts vehicle characteristics from SUNARP 'Boleta Informativa' PDFs stored in Google Drive."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.32",
+    "pydantic>=2.9",
+    "pydantic-settings>=2.6",
+    # PDF inspection, native text extraction and page rasterisation.
+    "PyMuPDF>=1.24",
+    # Spatial OCR: image_to_data gives the bounding boxes the column logic depends on.
+    "pytesseract>=0.3.13",
+    "Pillow>=10.4",
+    "google-api-python-client>=2.149",
+    "google-auth>=2.35",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3", "httpx>=0.27", "ruff>=0.6"]
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-q"
+filterwarnings = ["ignore:Using `httpx` with `starlette.testclient`:DeprecationWarning"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM"]
+# B008: calling Depends()/Header() in a parameter default is how FastAPI declares dependencies.
+ignore = ["B008"]
