@@ -1,0 +1,223 @@
+{
+  "name": "SUNARP - extract vehicle characteristics",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "a1000000-0000-4000-8000-000000000001",
+      "name": "When clicking 'Execute workflow'",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [-160, 300]
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "PUT_DRIVE_IDS_SPREADSHEET_ID_HERE"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Hoja 1"
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000002",
+      "name": "Get rows",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [60, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "estado-empty",
+              "leftValue": "={{ $json.ESTADO }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000003",
+      "name": "Only pending rows",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.2,
+      "position": [280, 300]
+    },
+    {
+      "parameters": {
+        "maxItems": 10
+      },
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "name": "Limit",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [500, 300],
+      "notes": "10 for the smoke test, then 200 for the real run"
+    },
+    {
+      "parameters": {
+        "options": {
+          "reset": false
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000005",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [720, 300],
+      "notes": "Batch Size 1 - OCR is CPU-bound"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://vehicle-ocr:8000/api/v1/vehicles/extract",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"plate\": \"{{ $json.PLACA }}\",\n  \"drive_file_id\": \"{{ $json.ID_DRIVE }}\"\n}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "a1000000-0000-4000-8000-000000000006",
+      "name": "Extract characteristics",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [980, 300],
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "onError": "continueErrorOutput",
+      "notes": "Header Auth credential: name X-API-Key, value = API_KEY from .env"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "PUT_DRIVE_IDS_SPREADSHEET_ID_HERE"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Hoja 1"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": ["row_number"],
+          "value": {
+            "row_number": "={{ $('Loop Over Items').item.json.row_number }}",
+            "NUM_CILINDROS": "={{ $json.values.NUM_CILINDROS }}",
+            "PESO_NETO": "={{ $json.values.PESO_NETO }}",
+            "PESO_BRUTO": "={{ $json.values.PESO_BRUTO }}",
+            "NUM_ASIENTOS": "={{ $json.values.NUM_ASIENTOS }}",
+            "NUM_PASAJEROS": "={{ $json.values.NUM_PASAJEROS }}",
+            "NUM_EJES": "={{ $json.values.NUM_EJES }}",
+            "NUM_RUEDAS": "={{ $json.values.NUM_RUEDAS }}",
+            "LONGITUD": "={{ $json.values.LONGITUD }}",
+            "ANCHO": "={{ $json.values.ANCHO }}",
+            "ALTURA": "={{ $json.values.ALTURA }}",
+            "NUM_PARTIDA": "={{ $json.values.NUM_PARTIDA }}",
+            "TIPO_USO": "={{ $json.values.TIPO_USO }}",
+            "ESTADO": "={{ $json.warnings.length > 0 ? \"REVISAR\" : \"OK\" }}",
+            "AVISOS": "={{ $json.warnings.map(w => w.code).join(\", \") }}"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000007",
+      "name": "Write result",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1240, 200]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "PUT_DRIVE_IDS_SPREADSHEET_ID_HERE"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "Hoja 1"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "matchingColumns": ["row_number"],
+          "value": {
+            "row_number": "={{ $('Loop Over Items').item.json.row_number }}",
+            "ESTADO": "={{ \"ERROR:\" + ($json.error?.error?.code || $json.error?.code || \"REQUEST_FAILED\") }}",
+            "AVISOS": "={{ $json.error?.error?.message || $json.error?.message || \"\" }}"
+          },
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "a1000000-0000-4000-8000-000000000008",
+      "name": "Write error",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1240, 420]
+    }
+  ],
+  "connections": {
+    "When clicking 'Execute workflow'": {
+      "main": [[{ "node": "Get rows", "type": "main", "index": 0 }]]
+    },
+    "Get rows": {
+      "main": [[{ "node": "Only pending rows", "type": "main", "index": 0 }]]
+    },
+    "Only pending rows": {
+      "main": [[{ "node": "Limit", "type": "main", "index": 0 }]]
+    },
+    "Limit": {
+      "main": [[{ "node": "Loop Over Items", "type": "main", "index": 0 }]]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [{ "node": "Extract characteristics", "type": "main", "index": 0 }]
+      ]
+    },
+    "Extract characteristics": {
+      "main": [
+        [{ "node": "Write result", "type": "main", "index": 0 }],
+        [{ "node": "Write error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Write result": {
+      "main": [[{ "node": "Loop Over Items", "type": "main", "index": 0 }]]
+    },
+    "Write error": {
+      "main": [[{ "node": "Loop Over Items", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

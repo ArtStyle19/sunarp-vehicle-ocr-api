@@ -47,6 +47,8 @@ ENV PATH="/opt/venv/bin:$PATH" \
 
 WORKDIR /srv/app
 COPY --chown=app:app app ./app
+# Operator tool: lets you check a single Drive id from inside the running container.
+COPY --chown=app:app check_plate.py ./
 
 USER app
 EXPOSE 8000

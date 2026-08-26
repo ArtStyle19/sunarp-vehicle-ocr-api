@@ -266,6 +266,10 @@ Python tracebacks are never returned.
 
 ## 4. Running it
 
+> **Deploying next to n8n on a server?** Follow [](DEPLOYMENT.md) instead — it
+> covers the Docker network wiring, the service-account file ownership, and a resumable n8n
+> workflow for bulk runs. An importable workflow is in [](n8n/).
+
 ### Docker (recommended)
 
 ```bash
